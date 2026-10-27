@@ -15,6 +15,24 @@ A macOS app (written in Go with Wails, HTML/CSS interface) to run `.sh` files wi
 - Output (stdout and stderr) appears in the panel below, along with the exit code when the run finishes.
 - The list and display names are saved between app launches.
 
+## Screenshots
+
+The main window with the list of `.sh` files and the output panel:
+
+![Main window](screenshots/ss-1.png)
+
+The **⋮** menu for a file:
+
+![File menu](screenshots/ss-2.png)
+
+The **Run with parameters** dialog:
+
+![Run with parameters](screenshots/ss-3.png)
+
+A file with a saved run, shown indented below it:
+
+![Saved run](screenshots/ss-4.png)
+
 ## Requirements
 
 - macOS
