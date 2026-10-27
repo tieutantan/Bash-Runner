@@ -1,6 +1,6 @@
 # Bash-Runner
 
-App macOS (viết bằng Go + Fyne) để chạy các file `.sh` bằng nút bấm, thay vì phải mở Terminal gõ `bash`.
+App macOS (viết bằng Go + Wails, giao diện HTML/CSS) để chạy các file `.sh` bằng nút bấm, thay vì phải mở Terminal gõ `bash`.
 
 ## Tính năng
 
@@ -19,7 +19,7 @@ App macOS (viết bằng Go + Fyne) để chạy các file `.sh` bằng nút b�
 
 - macOS
 - Go 1.21 trở lên
-- Xcode Command Line Tools (Fyne cần cgo): `xcode-select --install`
+- Xcode Command Line Tools (Wails cần cgo): `xcode-select --install`
 
 ## Build thành app macOS
 
@@ -27,12 +27,12 @@ App macOS (viết bằng Go + Fyne) để chạy các file `.sh` bằng nút b�
 ./build.sh
 ```
 
-Script [build.sh](build.sh) tự cài công cụ `fyne` nếu chưa có, rồi đóng gói thành `Bash Runner.app` trong thư mục dự án. Kéo file này vào thư mục Applications nếu muốn.
+Script [build.sh](build.sh) tự cài công cụ `wails` nếu chưa có, rồi đóng gói thành `Bash Runner.app` trong thư mục dự án. Kéo file này vào thư mục Applications nếu muốn.
 
-Chạy nhanh khi đang phát triển (không tạo file `.app`):
+Chạy chế độ phát triển (tự tải lại khi sửa `frontend/`):
 
 ```bash
-go run .
+wails dev
 ```
 
 Icon của app là [icon.png](icon.png).

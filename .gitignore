@@ -1,4 +1,7 @@
 bash-runner
 *.app
 Bash Runner.app
+.ideafrontend/wailsjs
+build/bin
 .idea
+bash-files

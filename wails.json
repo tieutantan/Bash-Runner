@@ -1,0 +1,13 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Bash Runner",
+  "outputfilename": "Bash Runner",
+  "assetdir": "frontend",
+  "info": {
+    "companyName": "tantn",
+    "productName": "Bash Runner",
+    "productVersion": "1.0.0",
+    "copyright": "",
+    "comments": "Chạy file .sh bằng một cú bấm"
+  }
+}

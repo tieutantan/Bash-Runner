@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bash Runner</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="hd">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M7 10l3 2-3 2M12 15h5"/></svg>
+      </div>
+      <div>
+        <h1 class="ttl">Bash Runner</h1>
+        <div class="sub" id="count">&nbsp;</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="add" type="button">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      Thêm file
+    </button>
+  </header>
+
+  <main class="list" id="list" aria-label="Danh sách file bash"></main>
+
+  <div class="split" id="split" role="separator" aria-orientation="horizontal" aria-label="Đổi chiều cao khung output" tabindex="0"></div>
+
+  <section class="out" id="out" aria-label="Output">
+    <div class="out-hd">
+      <h2 class="out-ttl">Output</h2>
+      <span class="chip" id="chip" hidden></span>
+      <div class="grow"></div>
+      <button class="ico" id="copyOut" type="button" aria-label="Sao chép output" title="Sao chép output"></button>
+      <button class="ico ico-danger" id="clearOut" type="button" aria-label="Xóa output" title="Xóa output"></button>
+    </div>
+    <pre class="log" id="log" tabindex="0" aria-live="off" aria-label="Nội dung output"></pre>
+  </section>
+</div>
+
+<div class="menu" id="menu" role="menu" hidden></div>
+
+<dialog class="dlg" id="paramDlg" aria-labelledby="paramTitle">
+  <form method="dialog" id="paramForm" novalidate>
+    <div class="dlg-hd">
+      <div class="tile tile-primary" aria-hidden="true"></div>
+      <div class="grow">
+        <h2 class="dlg-ttl" id="paramTitle">Chạy với tham số</h2>
+        <div class="path" id="paramFile"></div>
+      </div>
+      <button class="ico ico-plain" type="button" data-close aria-label="Đóng"></button>
+    </div>
+    <div class="field">
+      <label for="paramName">Tên <span class="opt">(không bắt buộc)</span></label>
+      <input id="paramName" type="text" autocomplete="off" placeholder="Ví dụ: Triển khai staging">
+    </div>
+    <div class="field">
+      <label for="paramValue">Tham số</label>
+      <input id="paramValue" class="mono" type="text" autocomplete="off" spellcheck="false" placeholder='Ví dụ: --env staging "thư mục mới"' aria-describedby="paramHint paramError">
+      <div class="chips" id="paramChips" aria-label="Gợi ý từ các lần chạy đã lưu"></div>
+    </div>
+    <p class="hint" id="paramHint">Tham số được truyền nguyên văn như khi gõ trong Terminal. Lưu lại để lần chạy hiện ngay dưới file.</p>
+    <p class="error" id="paramError" role="alert" hidden></p>
+    <div class="dlg-acts">
+      <button class="btn btn-ghost" type="button" data-close>Hủy</button>
+      <div class="grow"></div>
+      <button class="btn btn-primary" type="button" id="paramSave">Lưu</button>
+      <button class="btn btn-run" type="button" id="paramRun">Chạy một lần</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="dlg dlg-sm" id="renameDlg" aria-labelledby="renameTitle">
+  <form method="dialog" id="renameForm" novalidate>
+    <div class="dlg-hd">
+      <div class="grow">
+        <h2 class="dlg-ttl" id="renameTitle">Đổi tên hiển thị</h2>
+        <div class="path">Không đổi tên file trên ổ đĩa</div>
+      </div>
+      <button class="ico ico-plain" type="button" data-close aria-label="Đóng"></button>
+    </div>
+    <div class="field">
+      <label for="renameValue">Tên hiển thị</label>
+      <input id="renameValue" type="text" autocomplete="off">
+    </div>
+    <div class="dlg-acts">
+      <button class="btn btn-ghost" type="button" data-close>Hủy</button>
+      <div class="grow"></div>
+      <button class="btn btn-primary" type="submit">Lưu</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>

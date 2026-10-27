@@ -5,28 +5,25 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 APP_NAME="Bash Runner"
-APP_ID="com.tantn.bashrunner"
-APP_VERSION="1.0.0"
 ICON="icon.png"
 
 # Tắt app đang chạy trước khi build để không ghi đè lên bản đang mở. Không chạy thì bỏ qua.
 pkill -f "$APP_NAME.app/Contents/MacOS/" 2>/dev/null || true
 
-FYNE="$(go env GOPATH)/bin/fyne"
-if [[ ! -x "$FYNE" ]]; then
-	echo "Đang cài công cụ fyne..."
-	go install fyne.io/tools/cmd/fyne@latest
+WAILS="$(go env GOPATH)/bin/wails"
+if [[ ! -x "$WAILS" ]]; then
+	echo "Đang cài công cụ wails..."
+	go install github.com/wailsapp/wails/v2/cmd/wails@latest
 fi
 
-"$FYNE" package \
-	-os darwin \
-	-name "$APP_NAME" \
-	-app-id "$APP_ID" \
-	-icon "$ICON" \
-	-app-version "$APP_VERSION" \
-	-release
+# Wails lấy icon từ build/appicon.png.
+cp "$ICON" build/appicon.png
+"$WAILS" build -clean -platform darwin/arm64 -s
 
-# fyne phóng to icon.png lên 1024px khi tạo icns nên icon bị mờ.
+rm -rf "$APP_NAME.app"
+mv "build/bin/$APP_NAME.app" "$APP_NAME.app"
+
+# Wails phóng to icon.png lên 1024px khi tạo icns nên icon bị mờ.
 # Tạo lại icns chỉ từ các kích thước có sẵn trong icon.png, không phóng to.
 ICONSET="$(mktemp -d)/icon.iconset"
 mkdir -p "$ICONSET"

@@ -8,7 +8,7 @@ For design-system choices and focused lookups, use the skill at [.agents/skills/
 
 ## Build after code changes
 
-After any change to Go code (`main.go`, `go.mod`, or assets embedded in the app such as `icon.png`), rebuild the app without waiting to be asked:
+After any change to Go code (`main.go`, `app.go`, `go.mod`, or assets embedded in the app such as `icon.png` and everything in `frontend/`), rebuild the app without waiting to be asked:
 
 ```bash
 ./build.sh
