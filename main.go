@@ -28,11 +28,11 @@ func main() {
 		OnStartup:        app.startup,
 		Bind:             []interface{}{app},
 		Mac: &mac.Options{
-			// Thanh tiêu đề trong suốt, nút đóng/thu nhỏ nằm đè lên header của giao diện.
+			// Transparent title bar; the close and minimize buttons sit over the UI header.
 			TitleBar: mac.TitleBarHiddenInset(),
 			About: &mac.AboutInfo{
 				Title:   "Bash Runner",
-				Message: "Chạy file .sh bằng một cú bấm.",
+				Message: "Run .sh files with one click.",
 			},
 		},
 	})

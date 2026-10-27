@@ -19,25 +19,25 @@ import (
 const (
 	storeDir  = "Bash Runner"
 	storeFile = "scripts.json"
-	// Phiên bản Fyne lưu danh sách trong preferences của nó. Đọc một lần để không mất dữ liệu cũ.
+	// The earlier Fyne version stored the list in its preferences. Read it once so no existing data is lost.
 	legacyPrefs = "Library/Preferences/fyne/com.tantn.bashrunner/preferences.json"
 )
 
-// script là một file bash đã thêm vào danh sách. Name rỗng nghĩa là dùng tên file gốc.
-// Runs là các lần chạy với tham số đã lưu, hiện thụt lề ngay dưới file.
+// script is a bash file added to the list. An empty Name means the original file name is used.
+// Runs are the saved runs with parameters, shown indented right below the file.
 type script struct {
 	Path string      `json:"path"`
 	Name string      `json:"name"`
 	Runs []customRun `json:"runs,omitempty"`
 }
 
-// customRun là một lần chạy file kèm tham số, có tên riêng để nhận ra.
+// customRun is a run of the file with parameters, with its own name so it can be recognized.
 type customRun struct {
 	Name   string `json:"name"`
 	Params string `json:"params"`
 }
 
-// scriptView là script kèm các giá trị tính sẵn để giao diện chỉ việc hiển thị.
+// scriptView is a script with precomputed values so the UI only has to display them.
 type scriptView struct {
 	Path        string      `json:"path"`
 	DisplayName string      `json:"displayName"`
@@ -46,13 +46,13 @@ type scriptView struct {
 	Runs        []customRun `json:"runs"`
 }
 
-// outputEvent là một đoạn output gửi sang giao diện. Kind: cmd, out, err, ok, fail.
+// outputEvent is a piece of output sent to the UI. Kind: cmd, out, err, ok, fail.
 type outputEvent struct {
 	Kind string `json:"kind"`
 	Text string `json:"text"`
 }
 
-// runEvent báo một lần chạy bắt đầu hoặc kết thúc.
+// runEvent reports that a run has started or finished.
 type runEvent struct {
 	Key     string `json:"key"`
 	Running bool   `json:"running"`
@@ -64,7 +64,7 @@ type App struct {
 
 	mu      sync.Mutex
 	scripts []script
-	running map[string]bool // khóa theo runKey, để không chạy trùng cùng một lần chạy
+	running map[string]bool // keyed by runKey, so the same run is never started twice
 }
 
 func newApp() *App {
@@ -89,14 +89,14 @@ func (a *App) load() {
 		return
 	}
 	if data, err := os.ReadFile(path); err == nil {
-		// Dữ liệu lỗi thì bỏ qua, bắt đầu với danh sách rỗng.
+		// Corrupt data is ignored; start with an empty list.
 		_ = json.Unmarshal(data, &a.scripts)
 		return
 	}
 	a.migrateLegacy()
 }
 
-// migrateLegacy chuyển danh sách từ bản Fyne cũ sang file mới.
+// migrateLegacy moves the list from the old Fyne version to the new file.
 func (a *App) migrateLegacy() {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -123,7 +123,7 @@ func (a *App) migrateLegacy() {
 	a.save()
 }
 
-// save ghi danh sách ra đĩa. Gọi khi đang giữ a.mu hoặc khi chưa có goroutine nào khác.
+// save writes the list to disk. Call it while holding a.mu, or when no other goroutine is running.
 func (a *App) save() {
 	path, err := storePath()
 	if err != nil {
@@ -144,7 +144,7 @@ func fileExists(path string) bool {
 	return err == nil
 }
 
-// views dựng danh sách để gửi cho giao diện. Gọi khi đang giữ a.mu.
+// views builds the list to send to the UI. Call it while holding a.mu.
 func (a *App) views() []scriptView {
 	out := make([]scriptView, 0, len(a.scripts))
 	for _, s := range a.scripts {
@@ -167,37 +167,51 @@ func (a *App) views() []scriptView {
 	return out
 }
 
-// GetScripts trả về danh sách file hiện có.
+// GetScripts returns the current list of files.
 func (a *App) GetScripts() []scriptView {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	return a.views()
 }
 
-// AddScript mở hộp thoại chọn file .sh của hệ thống rồi thêm vào danh sách.
+// AddScript opens a dialog to pick one or more .sh files and adds them to the list. Files already in the list are skipped.
 func (a *App) AddScript() ([]scriptView, error) {
-	path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Chọn file bash",
+	paths, err := runtime.OpenMultipleFilesDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Choose bash files",
 		Filters: []runtime.FileFilter{
-			{DisplayName: "File bash (*.sh)", Pattern: "*.sh"},
+			{DisplayName: "Bash files (*.sh)", Pattern: "*.sh"},
 		},
 	})
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	if err != nil || path == "" {
+	if err != nil || len(paths) == 0 {
 		return a.views(), err
 	}
-	for _, s := range a.scripts {
-		if s.Path == path {
-			return a.views(), nil
+	added := false
+	for _, path := range paths {
+		if a.hasScript(path) {
+			continue
 		}
+		a.scripts = append(a.scripts, script{Path: path})
+		added = true
 	}
-	a.scripts = append(a.scripts, script{Path: path})
-	a.save()
+	if added {
+		a.save()
+	}
 	return a.views(), nil
 }
 
-// RemoveScript bỏ file khỏi danh sách. File gốc trên đĩa không bị xóa.
+// hasScript reports whether the file is already in the list. Call it while holding a.mu.
+func (a *App) hasScript(path string) bool {
+	for _, s := range a.scripts {
+		if s.Path == path {
+			return true
+		}
+	}
+	return false
+}
+
+// RemoveScript removes the file from the list. The original file on disk is not deleted.
 func (a *App) RemoveScript(path string) []scriptView {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -212,7 +226,7 @@ func (a *App) RemoveScript(path string) []scriptView {
 	return a.views()
 }
 
-// RenameScript đặt tên hiển thị khác cho file. Tên rỗng nghĩa là dùng lại tên file gốc.
+// RenameScript sets a different display name for the file. An empty name means going back to the original file name.
 func (a *App) RenameScript(path, name string) []scriptView {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -225,13 +239,13 @@ func (a *App) RenameScript(path, name string) []scriptView {
 	return a.views()
 }
 
-// SaveRun lưu một lần chạy có tham số. idx -1 là tạo mới, còn không thì sửa lần chạy đã lưu.
+// SaveRun saves a run with parameters. idx -1 creates a new run; otherwise the saved run at idx is edited.
 func (a *App) SaveRun(path string, idx int, name, params string) ([]scriptView, error) {
 	name, params = strings.TrimSpace(name), strings.TrimSpace(params)
 	if params == "" {
-		return nil, errors.New("Nhập tham số trước khi lưu")
+		return nil, errors.New("Enter parameters before saving")
 	}
-	// Không đặt tên thì dùng luôn tham số làm tên.
+	// If no name is given, the parameters are used as the name.
 	if name == "" {
 		name = params
 	}
@@ -252,7 +266,7 @@ func (a *App) SaveRun(path string, idx int, name, params string) ([]scriptView, 
 	return a.views(), nil
 }
 
-// DeleteRun xóa một lần chạy đã lưu. File gốc vẫn được giữ lại.
+// DeleteRun deletes a saved run. The original file is kept.
 func (a *App) DeleteRun(path string, idx int) []scriptView {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -266,25 +280,25 @@ func (a *App) DeleteRun(path string, idx int) []scriptView {
 	return a.views()
 }
 
-// OpenInEditor mở file bằng ứng dụng mặc định của hệ thống cho file .sh.
+// OpenInEditor opens the file with the system's default app for .sh files.
 func (a *App) OpenInEditor(path string) error {
 	return exec.Command("open", path).Run()
 }
 
-// CopyText đưa văn bản vào clipboard.
+// CopyText puts the text on the clipboard.
 func (a *App) CopyText(text string) error {
 	return runtime.ClipboardSetText(a.ctx, text)
 }
 
-// runKey định danh một lần chạy. Cùng một file nhưng khác tham số thì là lần chạy khác.
+// runKey identifies a run. The same file with different parameters is a different run.
 func runKey(path, params string) string {
 	return path + "\x00" + params
 }
 
-// RunKey để giao diện tính cùng khóa với backend.
+// RunKey lets the UI compute the same key as the backend.
 func (a *App) RunKey(path, params string) string { return runKey(path, params) }
 
-// GetRunning trả về các khóa lần chạy đang chạy, dùng khi giao diện vừa mở.
+// GetRunning returns the keys of the runs in progress, used when the UI opens.
 func (a *App) GetRunning() []string {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -295,13 +309,13 @@ func (a *App) GetRunning() []string {
 	return keys
 }
 
-// bashCommand tạo lệnh chạy file với tham số. Tham số được đưa vào shell nguyên văn,
-// nên dấu nháy và khoảng trắng hoạt động như khi gõ trong Terminal.
+// bashCommand builds the command that runs the file with parameters. Parameters are passed to the shell verbatim,
+// so quotes and spaces behave as they do when typed in Terminal.
 func bashCommand(path, params string) *exec.Cmd {
 	if strings.TrimSpace(params) == "" {
 		return exec.Command("/bin/bash", path)
 	}
-	// $0 nhận đường dẫn file, nên đường dẫn có khoảng trắng không cần escape.
+	// $0 receives the file path, so paths with spaces need no escaping.
 	return exec.Command("/bin/bash", "-c", `exec /bin/bash "$0" `+params, path)
 }
 
@@ -313,7 +327,7 @@ func (a *App) emitRun(key string, running, ok bool) {
 	runtime.EventsEmit(a.ctx, "run", runEvent{Key: key, Running: running, OK: ok})
 }
 
-// Run chạy file với tham số (có thể rỗng) và phát output về giao diện. Mỗi lần chạy có khóa riêng để không chạy trùng.
+// Run runs the file with parameters (may be empty) and streams the output to the UI. Each run has its own key so it is never started twice.
 func (a *App) Run(path, params string) {
 	key := runKey(path, params)
 	a.mu.Lock()
@@ -337,24 +351,24 @@ func (a *App) Run(path, params string) {
 	}()
 }
 
-// execute chạy lệnh và chờ xong. Trả về true khi exit 0.
+// execute runs the command and waits for it to finish. Returns true when it exits with 0.
 func (a *App) execute(path, params string) bool {
-	// Chạy trong thư mục chứa file để các đường dẫn tương đối trong script hoạt động đúng.
+	// Run in the file's directory so relative paths inside the script work correctly.
 	cmd := bashCommand(path, params)
 	cmd.Dir = filepath.Dir(path)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		a.emitOutput("fail", "Lỗi: "+err.Error()+"\n")
+		a.emitOutput("fail", "Error: "+err.Error()+"\n")
 		return false
 	}
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		a.emitOutput("fail", "Lỗi: "+err.Error()+"\n")
+		a.emitOutput("fail", "Error: "+err.Error()+"\n")
 		return false
 	}
 	if err := cmd.Start(); err != nil {
-		a.emitOutput("fail", "Lỗi: "+err.Error()+"\n")
+		a.emitOutput("fail", "Error: "+err.Error()+"\n")
 		return false
 	}
 
@@ -365,15 +379,15 @@ func (a *App) execute(path, params string) bool {
 	wg.Wait()
 
 	if err := cmd.Wait(); err != nil {
-		a.emitOutput("fail", fmt.Sprintf("\n[Lỗi: %v]\n", err))
+		a.emitOutput("fail", fmt.Sprintf("\n[Error: %v]\n", err))
 		return false
 	}
-	a.emitOutput("ok", "\n[Hoàn tất, exit 0]\n")
+	a.emitOutput("ok", "\n[Done, exit 0]\n")
 	return true
 }
 
-// pipe đọc output theo từng đoạn để hiện ngay cả khi script chưa xuống dòng (thanh tiến trình, prompt).
-// Đoạn gửi đi không bao giờ cắt giữa một ký tự UTF-8.
+// pipe reads the output in chunks so it appears right away even when the script has not printed a newline (progress bars, prompts).
+// A chunk is never cut in the middle of a UTF-8 character.
 func (a *App) pipe(rd io.Reader, kind string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	buf := make([]byte, 4096)
@@ -395,7 +409,7 @@ func (a *App) pipe(rd io.Reader, kind string, wg *sync.WaitGroup) {
 	}
 }
 
-// completeUTF8 trả về độ dài phần đầu của b không kết thúc giữa một ký tự UTF-8.
+// completeUTF8 returns the length of the prefix of b that does not end in the middle of a UTF-8 character.
 func completeUTF8(b []byte) int {
 	for i := 1; i <= utf8.UTFMax && i <= len(b); i++ {
 		if utf8.RuneStart(b[len(b)-i]) {

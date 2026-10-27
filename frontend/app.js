@@ -1,4 +1,4 @@
-// Giao diện Bash Runner. Backend Go được Wails gắn vào window.go.main.App, sự kiện qua window.runtime.
+// Bash Runner UI. The Go backend is attached by Wails to window.go.main.App; events go through window.runtime.
 (function () {
   'use strict';
 
@@ -26,7 +26,7 @@
   };
 
   const state = {
-    scripts: null, // null = đang tải
+    scripts: null, // null = loading
     loadError: '',
     running: new Set(),
     lastResult: null, // null | 'ok' | 'fail'
@@ -35,9 +35,9 @@
   const esc = (s) =>
     String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const runKey = (path, params) => path + '\x00' + params;
-  const plural = (n) => `${n} file bash`;
+  const plural = (n) => `${n} bash file${n > 1 ? 's' : ''}`;
 
-  // ---------- Danh sách ----------
+  // ---------- List ----------
 
   function setScripts(list) {
     state.scripts = list || [];
@@ -49,8 +49,8 @@
     const list = $('list');
     if (state.loadError) {
       list.innerHTML = `<div class="state"><div class="big bad">${ICON.alert(30)}</div>
-        <h2>Không tải được danh sách</h2><p>${esc(state.loadError)}</p>
-        <button class="btn btn-primary" type="button" data-action="retry">Thử lại</button></div>`;
+        <h2>Could not load the list</h2><p>${esc(state.loadError)}</p>
+        <button class="btn btn-primary" type="button" data-action="retry">Try again</button></div>`;
       $('count').textContent = '';
       return;
     }
@@ -59,12 +59,12 @@
       $('count').innerHTML = '&nbsp;';
       return;
     }
-    $('count').textContent = state.scripts.length ? plural(state.scripts.length) : 'Chưa có file';
+    $('count').textContent = state.scripts.length ? plural(state.scripts.length) : 'No files yet';
     if (!state.scripts.length) {
       list.innerHTML = `<div class="state"><div class="big">${ICON.upload(30)}</div>
-        <h2>Chưa có file nào</h2><p>Chọn file .sh ở bất kỳ đâu trên máy để chạy bằng một cú bấm.</p>
-        <button class="btn btn-primary" type="button" data-action="add">Thêm file</button>
-        <div class="steps"><span><b>1</b> Thêm file</span><span><b>2</b> Bấm Chạy</span><span><b>3</b> Xem output</span></div></div>`;
+        <h2>No files yet</h2><p>Choose a .sh file from anywhere on your Mac to run it with one click.</p>
+        <button class="btn btn-primary" type="button" data-action="add">Add file</button>
+        <div class="steps"><span><b>1</b> Add file</span><span><b>2</b> Click Run</span><span><b>3</b> View output</span></div></div>`;
       return;
     }
     list.innerHTML = state.scripts.map(cardHTML).join('');
@@ -75,21 +75,21 @@
     const cls = 'run' + (small ? ' sm' : '');
     const size = small ? 12 : 14;
     const data = `data-path="${esc(s.path)}" data-params="${esc(params)}"`;
-    if (busy) return `<button class="${cls}" type="button" disabled aria-busy="true">${ICON.spinner(size)}Đang chạy</button>`;
-    if (!s.exists) return `<button class="${cls}" type="button" disabled title="Không tìm thấy file">${ICON.play(size)}Chạy</button>`;
-    return `<button class="${cls}" type="button" data-action="run" ${data}>${ICON.play(size)}Chạy</button>`;
+    if (busy) return `<button class="${cls}" type="button" disabled aria-busy="true">${ICON.spinner(size)}Running</button>`;
+    if (!s.exists) return `<button class="${cls}" type="button" disabled title="File not found">${ICON.play(size)}Run</button>`;
+    return `<button class="${cls}" type="button" data-action="run" ${data}>${ICON.play(size)}Run</button>`;
   }
 
   function cardHTML(s, i) {
     const sub = s.exists
-      ? (s.runs.length ? `${s.runs.length} lần chạy đã lưu` : '')
-      : 'Không tìm thấy file · ' + esc(s.path);
+      ? (s.runs.length ? `${s.runs.length} saved run${s.runs.length > 1 ? 's' : ''}` : '')
+      : 'File not found · ' + esc(s.path);
     const runs = s.runs
       .map(
         (r, j) => `<div class="sub-run">
           <div class="grow"><div class="name">${esc(r.name)}</div><div class="code">${esc(r.params)}</div></div>
           ${runButton(s, r.params, true)}
-          <button class="more" type="button" data-action="menu-run" data-i="${i}" data-j="${j}" aria-haspopup="menu" aria-expanded="false" aria-label="Tùy chọn ${esc(r.name)}">${ICON.more(20)}</button>
+          <button class="more" type="button" data-action="menu-run" data-i="${i}" data-j="${j}" aria-haspopup="menu" aria-expanded="false" aria-label="Options for ${esc(r.name)}">${ICON.more(20)}</button>
         </div>`
       )
       .join('');
@@ -98,7 +98,7 @@
         <div class="tile ${s.exists ? '' : 'tile-danger'}">${s.exists ? ICON.file(20) : ICON.warn(20)}</div>
         <div class="grow"><div class="name">${esc(s.displayName)}</div>${sub ? `<div class="path ${s.exists ? '' : 'bad'}">${sub}</div>` : ''}</div>
         ${runButton(s, '', false)}
-        <button class="more" type="button" data-action="menu-file" data-i="${i}" aria-haspopup="menu" aria-expanded="false" aria-label="Tùy chọn ${esc(s.displayName)}">${ICON.more(20)}</button>
+        <button class="more" type="button" data-action="menu-file" data-i="${i}" aria-haspopup="menu" aria-expanded="false" aria-label="Options for ${esc(s.displayName)}">${ICON.more(20)}</button>
       </div>${runs}</article>`;
   }
 
@@ -124,7 +124,7 @@
     }
   }
 
-  // ---------- Menu dropdown ----------
+  // ---------- Dropdown menu ----------
 
   const menu = $('menu');
   let menuTrigger = null;
@@ -137,11 +137,11 @@
       <span><span class="mt">${esc(it.label)}</span><span class="md">${esc(it.desc)}</span></span></button>`;
   }
 
-  // openMenu hiện menu neo vào nút trigger: mép phải thẳng hàng với nút, hết chỗ phía dưới thì mở lên trên.
+  // openMenu shows the menu anchored to the trigger button: its right edge lines up with the button, and it opens upward when there is no room below.
   function openMenu(trigger, header, items) {
     closeMenu();
     items.forEach((it, id) => (it.id = id));
-    menu.setAttribute('aria-label', trigger.getAttribute('aria-label') || 'Tùy chọn');
+    menu.setAttribute('aria-label', trigger.getAttribute('aria-label') || 'Options');
     menu._items = items;
     menu.innerHTML = header + items.map(menuItem).join('');
     menu.hidden = false;
@@ -179,7 +179,7 @@
     const status =
       found === undefined
         ? ''
-        : `<div class="st ${found ? '' : 'bad'}"><i></i>${found ? 'Đã tìm thấy file' : 'Không tìm thấy file'}</div>`;
+        : `<div class="st ${found ? '' : 'bad'}"><i></i>${found ? 'File found' : 'File not found'}</div>`;
     return `<div class="mh"><div class="tile tile-primary">${icon(20)}</div>
       <div class="grow"><div class="name" style="font-size:14px">${esc(title)}</div>
       ${[].concat(subtitle).map((line) => `<div class="${found === undefined ? 'code' : 'path'}">${esc(line)}</div>`).join('')}${status}</div></div>`;
@@ -189,20 +189,20 @@
     const fileName = s.path.split('/').pop();
     const subtitle = s.displayName === fileName ? [s.dir] : [fileName, s.dir];
     openMenu(trigger, headerHTML(ICON.file, s.displayName, subtitle, s.exists), [
-      { group: 'Chạy', label: 'Chạy với tham số…', desc: 'Chạy một lần hoặc lưu lại để dùng sau', icon: ICON.play, style: 'hot', run: () => paramDialog(s, -1) },
-      { group: 'Quản lý', label: 'Đổi tên hiển thị', desc: 'Không đổi tên file trên ổ đĩa', icon: ICON.pencil, run: () => renameDialog(s) },
-      { label: 'Sao chép đường dẫn', desc: 'Đường dẫn đầy đủ vào clipboard', icon: ICON.copy, run: () => copy(s.path, 'Đã sao chép đường dẫn') },
-      { label: 'Mở để sửa', desc: 'Dùng ứng dụng mặc định cho .sh', icon: ICON.external, run: () => api().OpenInEditor(s.path).catch((e) => toast(String(e))) },
-      { label: 'Xóa khỏi danh sách', desc: 'File gốc trên máy không bị xóa', icon: ICON.trash, style: 'bad', divider: true, run: async () => setScripts(await api().RemoveScript(s.path)) },
+      { group: 'Run', label: 'Run with parameters…', desc: 'Run once or save it for later', icon: ICON.play, style: 'hot', run: () => paramDialog(s, -1) },
+      { group: 'Manage', label: 'Rename display name', desc: 'The file name on disk is not changed', icon: ICON.pencil, run: () => renameDialog(s) },
+      { label: 'Copy path', desc: 'Copy the full path to the clipboard', icon: ICON.copy, run: () => copy(s.path, 'Path copied') },
+      { label: 'Open for editing', desc: 'Use the default app for .sh files', icon: ICON.external, run: () => api().OpenInEditor(s.path).catch((e) => toast(String(e))) },
+      { label: 'Remove from list', desc: 'The original file on disk is not deleted', icon: ICON.trash, style: 'bad', divider: true, run: async () => setScripts(await api().RemoveScript(s.path)) },
     ]);
   }
 
   function runMenu(trigger, s, j) {
     const r = s.runs[j];
     openMenu(trigger, headerHTML(ICON.play, r.name, r.params), [
-      { group: 'Chỉnh sửa', label: 'Sửa tên và tham số', desc: 'Cập nhật lần chạy đã lưu', icon: ICON.pencil, style: 'hot', run: () => paramDialog(s, j) },
-      { label: 'Sao chép tham số', desc: 'Dán vào Terminal hoặc lần chạy khác', icon: ICON.copy, run: () => copy(r.params, 'Đã sao chép tham số') },
-      { label: 'Xóa lần chạy này', desc: `File ${s.displayName} vẫn được giữ lại`, icon: ICON.trash, style: 'bad', divider: true, run: async () => setScripts(await api().DeleteRun(s.path, j)) },
+      { group: 'Edit', label: 'Edit name and parameters', desc: 'Update the saved run', icon: ICON.pencil, style: 'hot', run: () => paramDialog(s, j) },
+      { label: 'Copy parameters', desc: 'Paste into Terminal or another run', icon: ICON.copy, run: () => copy(r.params, 'Parameters copied') },
+      { label: 'Delete this run', desc: `File ${s.displayName} is kept`, icon: ICON.trash, style: 'bad', divider: true, run: async () => setScripts(await api().DeleteRun(s.path, j)) },
     ]);
   }
 
@@ -210,7 +210,7 @@
     const btn = e.target.closest('.mi');
     if (!btn) return;
     const it = menu._items[Number(btn.dataset.idx)];
-    // Đóng menu trước rồi mới chạy hành động, để menu không còn trên màn hình khi có hộp thoại.
+    // Close the menu first, then run the action, so the menu is gone before any dialog appears.
     closeMenu(false);
     Promise.resolve()
       .then(it.run)
@@ -237,12 +237,12 @@
   window.addEventListener('resize', () => closeMenu(false));
   $('list').addEventListener('scroll', () => closeMenu(false), { passive: true });
 
-  // ---------- Hộp thoại ----------
+  // ---------- Dialogs ----------
 
   function wireDialog(dlg) {
     dlg.addEventListener('click', (e) => {
       if (e.target.closest('[data-close]')) dlg.close();
-      else if (e.target === dlg) dlg.close(); // bấm ra ngoài hộp thoại
+      else if (e.target === dlg) dlg.close(); // click outside the dialog
     });
   }
   const paramDlg = $('paramDlg');
@@ -259,7 +259,7 @@
 
   function paramDialog(s, idx) {
     const editing = idx >= 0;
-    $('paramTitle').textContent = editing ? 'Sửa lần chạy' : 'Chạy với tham số';
+    $('paramTitle').textContent = editing ? 'Edit run' : 'Run with parameters';
     $('paramFile').textContent = `${s.displayName} · ${s.dir}`;
     $('paramName').value = editing ? s.runs[idx].name : '';
     $('paramValue').value = editing ? s.runs[idx].params : '';
@@ -301,7 +301,7 @@
     }
   }
   $('paramSave').addEventListener('click', saveParam);
-  // Enter: đang sửa thì lưu, còn không thì chạy một lần.
+  // Enter: save when editing, otherwise run once.
   paramDlg.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' || e.target.closest('button')) return;
     e.preventDefault();
@@ -330,7 +330,7 @@
     return log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   }
 
-  // appendOutput nối đoạn mới vào output. Chỉ tự cuộn xuống khi người dùng đang ở cuối, để họ cuộn lên đọc được.
+  // appendOutput adds a new chunk to the output. It only auto-scrolls when the user is at the bottom, so they can scroll up to read.
   function appendOutput(kind, text) {
     const stick = atBottom();
     const last = log.lastElementChild;
@@ -349,12 +349,12 @@
   function updateChip() {
     if (state.running.size) {
       chip.className = 'chip live';
-      chip.innerHTML = '<span class="dot"></span>Đang chạy';
+      chip.innerHTML = '<span class="dot"></span>Running';
       chip.hidden = false;
     } else if (state.lastResult) {
       const ok = state.lastResult === 'ok';
       chip.className = 'chip' + (ok ? '' : ' fail');
-      chip.innerHTML = `<span class="dot"></span>${ok ? 'Hoàn tất · exit 0' : 'Có lỗi'}`;
+      chip.innerHTML = `<span class="dot"></span>${ok ? 'Done · exit 0' : 'Error'}`;
       chip.hidden = false;
     } else {
       chip.hidden = true;
@@ -363,14 +363,14 @@
 
   $('copyOut').innerHTML = ICON.copy(16);
   $('clearOut').innerHTML = ICON.trash(16);
-  $('copyOut').addEventListener('click', () => copy(log.textContent, 'Đã sao chép output'));
+  $('copyOut').addEventListener('click', () => copy(log.textContent, 'Output copied'));
   $('clearOut').addEventListener('click', () => {
     log.textContent = '';
     state.lastResult = null;
     updateChip();
   });
 
-  // ---------- Thanh chia ----------
+  // ---------- Divider ----------
 
   const split = $('split');
   const root = document.documentElement;
@@ -406,7 +406,7 @@
     saveOut();
   });
 
-  // ---------- Khác ----------
+  // ---------- Misc ----------
 
   let toastTimer;
   function toast(msg) {
@@ -422,11 +422,11 @@
       await api().CopyText(text);
       toast(msg);
     } catch (e) {
-      toast('Không sao chép được');
+      toast('Could not copy');
     }
   }
 
-  // ---------- Sự kiện ----------
+  // ---------- Events ----------
 
   $('add').addEventListener('click', addFile);
 
@@ -439,7 +439,7 @@
         api().Run(btn.dataset.path, btn.dataset.params);
         break;
       case 'menu-file':
-        // Bấm lại đúng nút đang mở menu thì đóng menu.
+        // Clicking the button that opened the menu closes it.
         if (menuTrigger === btn) closeMenu(false);
         else fileMenu(btn, s);
         break;
@@ -472,7 +472,7 @@
     });
   }
 
-  // Wails chèn window.go và window.runtime sau khi trang tải xong.
+  // Wails injects window.go and window.runtime after the page loads.
   function start() {
     if (api() && window.runtime) {
       onRuntimeEvents();

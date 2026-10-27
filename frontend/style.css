@@ -1,4 +1,4 @@
-/* Design tokens: mọi màu, cỡ chữ, khoảng cách lấy từ đây. */
+/* Design tokens: every color, font size and spacing comes from here. */
 :root {
   --bg: #f3f6fc;
   --surface: #ffffff;
@@ -45,7 +45,7 @@ h1, h2 { margin: 0; }
 .app { display: flex; flex-direction: column; height: 100%; }
 .grow { flex: 1; min-width: 0; }
 
-/* Header. Vùng kéo cửa sổ; chừa chỗ cho nút đóng/thu nhỏ của macOS bên trái. */
+/* Header. Window drag area; leaves room for the macOS close and minimize buttons on the left. */
 .hd {
   display: flex; align-items: center; justify-content: space-between;
   padding: 36px 24px 16px;
@@ -61,7 +61,7 @@ h1, h2 { margin: 0; }
 .ttl { font-size: 20px; font-weight: 700; line-height: 1.2; }
 .sub { font-size: 12px; color: var(--muted); }
 
-/* Nút */
+/* Buttons */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: 40px; padding: 0 16px; border-radius: var(--radius-ctl);
@@ -76,7 +76,7 @@ h1, h2 { margin: 0; }
 .btn-ghost { background: transparent; border-color: var(--border); color: var(--text); }
 .btn-ghost:hover { background: var(--raised); }
 
-/* Danh sách */
+/* List */
 .list {
   flex: 1; min-height: 0; overflow-y: auto;
   padding: 4px 24px 16px; display: flex; flex-direction: column; gap: 12px;
@@ -124,7 +124,7 @@ h1, h2 { margin: 0; }
 .sub-run .name { font-weight: 500; font-size: 14px; }
 .code { font: 12px var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Trạng thái trống, tải, lỗi */
+/* Empty, loading and error states */
 .state { margin: auto; text-align: center; max-width: 380px; padding: 24px; }
 .state .big {
   width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 16px;
@@ -142,7 +142,7 @@ h1, h2 { margin: 0; }
   background-size: 200% 100%; animation: shimmer 1.4s linear infinite;
 }
 
-/* Thanh chia và output */
+/* Divider and output */
 .split { height: 9px; flex: none; cursor: row-resize; position: relative; }
 .split::after {
   content: ""; position: absolute; left: 0; right: 0; top: 4px; height: 1px; background: var(--border);
@@ -176,7 +176,7 @@ h1, h2 { margin: 0; }
   background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
   user-select: text; -webkit-user-select: text;
 }
-.log:empty::before { content: "Output của lần chạy sẽ hiện ở đây."; color: var(--muted); font-family: var(--font); font-size: 13px; }
+.log:empty::before { content: "Output from a run will appear here."; color: var(--muted); font-family: var(--font); font-size: 13px; }
 .k-cmd { color: var(--primary); font-weight: 600; }
 .k-err { color: var(--warn-text); }
 .k-ok { color: var(--run); font-weight: 600; }
@@ -214,7 +214,7 @@ h1, h2 { margin: 0; }
 .mi.hot:hover .mic { background: var(--primary-tint); }
 .mi.bad:hover .mic { background: var(--danger-tint); }
 
-/* Hộp thoại */
+/* Dialogs */
 .dlg {
   width: 480px; max-width: calc(100vw - 32px); padding: 24px; color: var(--text);
   background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
